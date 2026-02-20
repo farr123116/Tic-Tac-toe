@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Local Game</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<h1>Local Tic Tac Toe</h1>
+<a href="/">Home</a>
+
+<p id="status">X turn</p>
+
+<div id="board"></div>
+
+<select id="mode">
+    <option value="friend">Friend</option>
+    <option value="ai">Vs AI</option>
+</select>
+
+<select id="difficulty">
+    <option value="easy">Easy</option>
+    <option value="medium">Medium</option>
+    <option value="hard">Hard</option>
+    <option value="unbeatable">Unbeatable</option>
+</select>
+
+<button onclick="resetGame()">Reset</button>
+
+<script src="/static/local.js"></script>
+</body>
+</html>
