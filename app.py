@@ -23,14 +23,44 @@ def random_move(board):
     moves = empty_cells(board)
     return random.choice(moves) if moves else None
 
+def winner(board):
+    lines=[
+        (0,1,2),(3,4,5),(6,7,8),
+        (0,3,6),(1,4,7),(2,5,8),
+        (0,4,8),(2,4,6)
+    ]
+    for a,b,c in lines:
+        if board[a] and board[a]==board[b]==board[c]:
+            return board[a]
+    return None
+
+def winning_move(board,player):
+    for i in empty_cells(board):
+        board[i]=player
+        if winner(board)==player:
+            board[i]=""
+            return i
+        board[i]=""
+    return None
 
 @app.route("/api/ai-move", methods=["POST"])
 def ai_move():
     data=request.json
     board=data["board"]
-    difficulty=data["difficulty"]
+    diff=data["difficulty"]
 
-    move = random_move(board)
+    if diff=="easy":
+        move=random_move(board)
+
+    elif diff=="medium":
+        move=winning_move(board,"O")
+        if move is None:
+            move=winning_move(board,"X")
+        if move is None:
+            move=random_move(board)
+
+    else:
+        move=random_move(board)
 
     return jsonify({"move":move})
 

@@ -19,20 +19,15 @@ function drawBoard(){
     status.textContent = turn + " turn";
 }
 
-function move(i){
+async function move(i){
     if(board[i]!=="" || finished) return;
+
+    if(document.getElementById("mode").value==="ai" && turn==="O")
+        return;
 
     board[i]=turn;
 
-    if(checkWinner()){
-        status.textContent = turn + " wins!";
-        finished=true;
-        drawBoard();
-        return;
-    }
-
-    if(board.every(c=>c!=="")){
-        status.textContent="Draw!";
+    if(checkWinner()||board.every(c=>c!=="")){
         finished=true;
         drawBoard();
         return;
@@ -40,6 +35,26 @@ function move(i){
 
     turn = turn==="X"?"O":"X";
     drawBoard();
+
+    if(document.getElementById("mode").value==="ai" && turn==="O"){
+        let res = await fetch("/api/ai-move",{
+            method:"POST",
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({
+                board:board,
+                difficulty:document.getElementById("difficulty").value
+            })
+        });
+        let data=await res.json();
+
+        board[data.move]="O";
+        turn="X";
+
+        if(checkWinner()||board.every(c=>c!==""))
+            finished=true;
+
+        drawBoard();
+    }
 }
 
 function checkWinner(){
