@@ -54,62 +54,102 @@ def winning_move(board,player):
         board[i]=""
     return None
 
-def minimax(board, maximizing):
-    win=winner(board)
-    if win=="O": return 1
-    if win=="X": return -1
-    if "" not in board: return 0
+
+def minimax(board, maximizing, depth=0, alpha=-10, beta=10):
+    w = winner(board)
+    if w == "O": return 10 - depth
+    if w == "X": return depth - 10
+    if is_full(board): return 0
 
     if maximizing:
-        best=-9
+        best = -10
         for i in empty_cells(board):
-            board[i]="O"
-            best=max(best,minimax(board,False))
-            board[i]=""
+            board[i] = "O"
+            score = minimax(board, False, depth + 1, alpha, beta)
+            board[i] = ""
+            best = max(best, score)
+            alpha = max(alpha, best)
+            if beta <= alpha:
+                break
         return best
     else:
-        best=9
+        best = 10
         for i in empty_cells(board):
-            board[i]="X"
-            best=min(best,minimax(board,True))
-            board[i]=""
+            board[i] = "X"
+            score = minimax(board, True, depth + 1, alpha, beta)
+            board[i] = ""
+            best = min(best, score)
+            beta = min(beta, best)
+            if beta <= alpha:
+                break
         return best
 
 
 def best_move(board):
-    best=-9
-    move=None
+    best_score = -99
+    move = None
+    if not empty_cells(board):
+        return None
+    if len(empty_cells(board)) == 9 and board[4] == "":
+        return 4
     for i in empty_cells(board):
-        board[i]="O"
-        score=minimax(board,False)
-        board[i]=""
-        if score>best:
-            best=score
-            move=i
+        board[i] = "O"
+        score = minimax(board, False)
+        board[i] = ""
+        if score > best_score:
+            best_score = score
+            move = i
     return move
+
 
 @app.route("/api/ai-move", methods=["POST"])
 def ai_move():
-    data=request.json
-    board=data["board"]
-    diff=data["difficulty"]
+    data = request.get_json(silent=True)
+    if not data:
+        return jsonify({"error": "No JSON body"}), 400
 
-    if diff=="easy":
-        move=random_move(board)
+    board = data.get("board")
+    diff = data.get("difficulty", "medium")
 
-    elif diff=="medium":
-        move=winning_move(board,"O") or winning_move(board,"X") or random_move(board)
+    if not isinstance(board, list) or len(board) != 9:
+        return jsonify({"error": "Invalid board"}), 400
+    if any(v not in ("", "X", "O") for v in board):
+        return jsonify({"error": "Invalid cell values"}), 400
+    if winner(board) or is_full(board):
+        return jsonify({"error": "Game already over"}), 400
 
-    elif diff=="hard":
-        if random.random()<0.3:
-            move=random_move(board)
-        else:
-            move=best_move(board)
+    if diff == "easy":
+        move = random_move(board)
+    elif diff == "medium":
+        move = (winning_move(board, "O") or winning_move(board, "X") or random_move(board))
+    elif diff == "hard":
+        move = (random_move(board) if random.random() < 0.25
+                else winning_move(board, "O") or winning_move(board, "X") or best_move(board))
+    else:
+        move = best_move(board)
 
-    else:  # unbeatable
-        move=best_move(board)
+    board[move] = "O"
+    w = winner(board)
+    line = winning_line(board) if w else None
+    draw = is_full(board) and not w
+    board[move] = ""
 
-    return jsonify({"move":move})
+    return jsonify({"move": move, "winner": w, "winning_line": line, "draw": draw})
+
+
+@app.route("/api/check", methods=["POST"])
+def check_board():
+    data = request.get_json(silent=True) or {}
+    board = data.get("board", [])
+    if len(board) != 9:
+        return jsonify({"error": "Bad board"}), 400
+
+    w = winner(board)
+    line = winning_line(board) if w else None
+    draw = is_full(board) and not w
+
+    return jsonify({"winner": w, "winning_line": line, "draw": draw})
+
 
 if __name__ == "__main__":
     app.run(debug=True)
